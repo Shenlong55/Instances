@@ -1,0 +1,22 @@
+name: Instances
+version: ${project.version}
+main: com.hackquest.shenlong55.instancesplugin.InstancesPlugin
+author: shenlong55
+description: A plugin that allows you to create instances.
+api-version: 1.15
+commands:
+  CreateInstance:
+    description: Create a new instance prototype.
+    usage: /CreateInstance [instanceName]
+  EditInstance:
+    description: Edit an existing instance prototype.
+    usage: /EditInstance [instanceName]
+  ExitInstance:
+    description: Exit an editable instance.
+    usage: /ExitInstance
+  SaveInstance:
+    description: Save an editable instance.
+    usage: /SaveInstance
+  TestInstance:
+    description: Enter an instance for testing.
+    usage: /TestInstance [instanceName]
