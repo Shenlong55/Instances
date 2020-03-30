@@ -1,4 +1,4 @@
-package com.hackquest.shenlong55.instancesplugin.commands;
+package com.hackquest.shenlong55.instances.commands;
 
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
@@ -6,11 +6,11 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.hackquest.shenlong55.instancesplugin.InstanceManager;
-import com.hackquest.shenlong55.instancesplugin.instances.Instance;
-import com.hackquest.shenlong55.instancesplugin.instances.InstanceError;
-import com.hackquest.shenlong55.instancesplugin.instances.InstancePlayer;
-import com.hackquest.shenlong55.instancesplugin.instances.InstancePrototype;
+import com.hackquest.shenlong55.instances.InstanceManager;
+import com.hackquest.shenlong55.instances.instances.Instance;
+import com.hackquest.shenlong55.instances.instances.InstanceError;
+import com.hackquest.shenlong55.instances.instances.InstancePlayer;
+import com.hackquest.shenlong55.instances.instances.InstancePrototype;
 
 public class EditInstance implements CommandExecutor
 {

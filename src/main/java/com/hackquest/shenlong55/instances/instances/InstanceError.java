@@ -1,4 +1,4 @@
-package com.hackquest.shenlong55.instancesplugin.instances;
+package com.hackquest.shenlong55.instances.instances;
 
 public final class InstanceError extends Exception
 {

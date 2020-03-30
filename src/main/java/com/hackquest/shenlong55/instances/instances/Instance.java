@@ -1,4 +1,4 @@
-package com.hackquest.shenlong55.instancesplugin.instances;
+package com.hackquest.shenlong55.instances.instances;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,8 +11,8 @@ import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
-import com.hackquest.shenlong55.instancesplugin.utility.DirectoryRemover;
-import com.hackquest.shenlong55.instancesplugin.utility.FileCopier;
+import com.hackquest.shenlong55.ddpluginlibrary.DirectoryRemover;
+import com.hackquest.shenlong55.ddpluginlibrary.FileCopier;
 
 public final class Instance implements Listener
 {

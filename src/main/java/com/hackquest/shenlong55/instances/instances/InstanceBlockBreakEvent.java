@@ -1,11 +1,11 @@
-package com.hackquest.shenlong55.instancesplugin.instances;
+package com.hackquest.shenlong55.instances.instances;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 
-import com.hackquest.shenlong55.instancesplugin.InstanceManager;
+import com.hackquest.shenlong55.instances.InstanceManager;
 
 public final class InstanceBlockBreakEvent implements Listener
 {

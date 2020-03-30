@@ -1,4 +1,4 @@
-package com.hackquest.shenlong55.instancesplugin.instances;
+package com.hackquest.shenlong55.instances.instances;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;

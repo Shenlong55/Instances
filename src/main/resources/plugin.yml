@@ -1,8 +1,8 @@
-name: Instances
+name: ${project.name}
 version: ${project.version}
-main: com.hackquest.shenlong55.instancesplugin.InstancesPlugin
+main: com.hackquest.shenlong55.instances.InstancesPlugin
 author: shenlong55
-description: A plugin that allows you to create instances.
+description: ${project.description}
 api-version: 1.15
 commands:
   CreateInstance:

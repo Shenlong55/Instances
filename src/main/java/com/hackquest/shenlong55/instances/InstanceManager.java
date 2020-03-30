@@ -1,12 +1,12 @@
-package com.hackquest.shenlong55.instancesplugin;
+package com.hackquest.shenlong55.instances;
 
 import java.io.File;
 import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
-import com.hackquest.shenlong55.instancesplugin.instances.Instance;
-import com.hackquest.shenlong55.instancesplugin.instances.InstancePrototype;
+import com.hackquest.shenlong55.instances.instances.Instance;
+import com.hackquest.shenlong55.instances.instances.InstancePrototype;
 
 public interface InstanceManager
 {
