@@ -6,7 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.hackquest.shenlong55.instances.InstanceManager;
-import com.hackquest.shenlong55.instances.instances.Instance;
 import com.hackquest.shenlong55.instances.instances.InstancePlayer;
 
 public class ExitInstance implements CommandExecutor
@@ -21,19 +20,18 @@ public class ExitInstance implements CommandExecutor
 	@Override
 	public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
 	{
-		if (args.length > 1)
+		if (args.length > 0)
 		{
 			return false;
 		}
 
 		if (sender instanceof Player)
 		{
-			final Player player = (Player) sender;
-			final Instance instance = instanceManager.getPlayerInstance(player);
-			final InstancePlayer instancePlayer = instance.getInstancePlayer(player);
-
-			instancePlayer.restoreState();
-			instance.removePlayer(instancePlayer);
+			final InstancePlayer instancePlayer = instanceManager.getInstancePlayer((Player) sender);
+			if (instancePlayer != null)
+			{
+				instancePlayer.restoreState();
+			}
 		}
 
 		return true;

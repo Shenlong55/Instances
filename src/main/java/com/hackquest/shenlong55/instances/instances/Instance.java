@@ -6,69 +6,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 
 import com.hackquest.shenlong55.ddpluginlibrary.DirectoryRemover;
 import com.hackquest.shenlong55.ddpluginlibrary.FileCopier;
 
-public final class Instance implements Listener
+public final class Instance
 {
-	private final List<InstancePlayer>	players		= new ArrayList<>();
-	private final boolean				preserved	= false;
+	private final List<InstancePlayer> instancePlayers = new ArrayList<>();
 
 	private final boolean			editable;
-	private final File				folder;
-	private final String			name;
-	private final InstancePrototype	prototype;
+	private final File				instanceFolder;
+	private final String			instanceName;
+	private final InstancePrototype	instancePrototype;
 
-	private World world;
+	private boolean	preserved;
+	private World	world;
 
 	protected Instance(final InstancePrototype instancePrototype, final String name, final boolean editable)
 	{
 		this(instancePrototype, name, editable, null);
 	}
 
-	protected Instance(final InstancePrototype prototype, final String name, final boolean editable, final World world)
+	protected Instance(final InstancePrototype instancePrototype, final String instanceName, final boolean editable, final World world)
 	{
-		this.prototype = prototype;
+		this.instancePrototype = instancePrototype;
+		this.instanceName = instanceName;
 		this.editable = editable;
-		this.name = name;
 		this.world = world;
-		folder = new File(Bukkit.getWorldContainer(), name);
+
+		instanceFolder = new File(Bukkit.getWorldContainer(), instanceName);
 	}
 
-	public void addPlayer(final InstancePlayer player)
+	public World getWorld()
 	{
-		players.add(player);
+		return world;
 	}
 
-	public InstancePlayer getInstancePlayer(final Player player)
+	public boolean isPreserved()
 	{
-		for (final InstancePlayer instancePlayer : players)
-		{
-			if (instancePlayer.getPlayer().equals(player.getPlayer()))
-			{
-				return instancePlayer;
-			}
-		}
-
-		return null;
+		return preserved;
 	}
 
-	public void removePlayer(final InstancePlayer player)
-	{
-		players.remove(player);
-
-		if (players.isEmpty())
-		{
-			prototype.unloadInstance(this);
-		}
-	}
-
-	public void save() throws InstanceError
+	public boolean save()
 	{
 		if (editable)
 		{
@@ -77,26 +60,48 @@ public final class Instance implements Listener
 
 			try
 			{
-				// Copy the world files from the instance folder
-				// to the prototype folder
-				final FileCopier fileCopier = new FileCopier(folder, prototype.getPrototypeFolder());
+				// Copy the world files from the instance folder to the prototype folder
+				final File prototypeFolder = instancePrototype.getPrototypeFolder();
+				final FileCopier fileCopier = new FileCopier(instanceFolder, prototypeFolder);
 				fileCopier.copyFiles();
+
+				// Delete the Bukkit world id file
+				instancePrototype.deleteWorldId();
 			}
 			catch (final IOException e)
 			{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return false;
 			}
+
+			return true;
 		}
-		else
-		{
-			throw new InstanceError("Instance is not editable.");
-		}
+
+		return false;
 	}
 
-	public void teleportPlayerToSpawn(final InstancePlayer instancePlayer)
+	protected void addInstancePlayer(final InstancePlayer player)
 	{
-		instancePlayer.getPlayer().teleport(world.getSpawnLocation());
+		instancePlayers.add(player);
+	}
+
+	protected InstancePlayer getInstancePlayer(final Player player)
+	{
+		for (final InstancePlayer instancePlayer : instancePlayers)
+		{
+			if (instancePlayer.getPlayer().equals(player))
+			{
+				return instancePlayer;
+			}
+		}
+
+		return null;
+	}
+
+	protected Location getSpawnLocation()
+	{
+		return world.getSpawnLocation();
 	}
 
 	protected boolean isEditable()
@@ -104,77 +109,62 @@ public final class Instance implements Listener
 		return editable;
 	}
 
-	protected boolean isPreserved()
-	{
-		return preserved;
-	}
-
 	protected void load()
 	{
-		if (prototype.isInitialized())
+		// Create the instance folder
+		instanceFolder.mkdir();
+
+		try
 		{
-			// Create the instance folder
-			folder.mkdir();
-
-			try
-			{
-				// Copy the files from the prototype folder
-				// to the instance folder
-				final FileCopier fileCopier = new FileCopier(prototype.getPrototypeFolder(), folder);
-				fileCopier.copyFiles();
-			}
-			catch (final IOException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			// Load the world into Bukkit memory
-			final WorldCreator worldCreator = new WorldCreator(name);
-			world = worldCreator.createWorld();
+			// Copy the files from the prototype folder to the instance folder
+			final FileCopier fileCopier = new FileCopier(instancePrototype.getPrototypeFolder(), instanceFolder);
+			fileCopier.copyFiles();
 		}
-		else
+		catch (final IOException e)
 		{
-			Bukkit.getLogger().info("Instance prototype has not been initialized.");
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		// Load the world into Bukkit memory
+		final WorldCreator worldCreator = new WorldCreator(instanceName);
+		world = worldCreator.createWorld();
+	}
+
+	protected void removePlayer(final InstancePlayer player)
+	{
+		instancePlayers.remove(player);
+
+		if (instancePlayers.isEmpty())
+		{
+			instancePrototype.removeInstance(this);
+			unload();
+		}
+	}
+
+	protected void removePlayers()
+	{
+		// Use a copy of the instancePlayers list to avoid ConcurrentModificationExceptions
+		final List<InstancePlayer> instancePlayers = new ArrayList<>(this.instancePlayers);
+		for (final InstancePlayer instancePlayer : instancePlayers)
+		{
+			instancePlayer.restoreState();
 		}
 	}
 
 	protected void unload()
 	{
-		unload(false);
-	}
-
-	protected void unload(final boolean saveChanges)
-	{
-		final boolean saveChangesAndEditable = saveChanges && editable;
-
-		// Unload the world from Bukkit memory
-		Bukkit.unloadWorld(world, saveChangesAndEditable);
-
-		if (saveChangesAndEditable)
+		if (!instancePlayers.isEmpty())
 		{
-			try
-			{
-				// Delete the Bukkit world id file if it exists
-				final File bukkitWorldId = new File(folder, "uid.dat");
-				if (bukkitWorldId.exists())
-				{
-					bukkitWorldId.delete();
-				}
-
-				// Save the changes to the prototype folder
-				final FileCopier fileCopier = new FileCopier(folder, prototype.getPrototypeFolder());
-				fileCopier.copyFiles();
-			}
-			catch (final IOException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			removePlayers();
+			return;
 		}
 
+		// Unload the world from Bukkit memory
+		Bukkit.unloadWorld(world, false);
+
 		// Delete instance folder
-		final DirectoryRemover directoryRemover = new DirectoryRemover(folder);
+		final DirectoryRemover directoryRemover = new DirectoryRemover(instanceFolder);
 		directoryRemover.removeDirectory();
 	}
 }

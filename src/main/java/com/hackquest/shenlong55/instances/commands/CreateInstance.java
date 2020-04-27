@@ -1,6 +1,5 @@
 package com.hackquest.shenlong55.instances.commands;
 
-import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,7 +7,6 @@ import org.bukkit.entity.Player;
 
 import com.hackquest.shenlong55.instances.InstanceManager;
 import com.hackquest.shenlong55.instances.instances.Instance;
-import com.hackquest.shenlong55.instances.instances.InstanceError;
 import com.hackquest.shenlong55.instances.instances.InstancePlayer;
 import com.hackquest.shenlong55.instances.instances.InstancePrototype;
 
@@ -24,45 +22,37 @@ public final class CreateInstance implements CommandExecutor
 	@Override
 	public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args)
 	{
-		if ((args.length == 0) || (args.length > 2))
+		// instanceName is a required argument
+		if (args.length != 1)
 		{
 			return false;
 		}
+		final String instanceName = args[0];
 
-		final String name = args[0];
-		if (name.length() > 15)
+		// Let the player know if the name they entered is too long
+		if (instanceName.length() > 15)
 		{
 			sender.sendMessage("Name is too long, please choose a shorter name.");
 			return true;
 		}
 
-		final InstancePrototype prototype = new InstancePrototype(instanceManager.getPrototypesFolder(), name);
-		instanceManager.addInstancePrototype(prototype);
-		prototype.initialize();
+		// Create a new InstancePrototype
+		final InstancePrototype prototype = new InstancePrototype(instanceManager, instanceName);
 
+		// If the sender is a player send them to an editable instance of the new prototype
 		if (sender instanceof Player)
 		{
-			final InstancePlayer player = new InstancePlayer(prototype, (Player) sender);
-			try
+			final Player player = (Player) sender;
+			final Instance instance = prototype.getInstance(true);
+
+			InstancePlayer instancePlayer = instanceManager.getInstancePlayer(player);
+			if (instancePlayer == null)
 			{
-				// Save the players current state
-				// (inventory, game mode, location)
-				player.saveState();
-
-				// Get an editable instance of the new prototype and teleport
-				// the player to the spawn point
-				final Instance instance = prototype.getInstance(true);
-				instance.addPlayer(player);
-				instance.teleportPlayerToSpawn(player);
-
-				// set the player to creative mode and clear their inventory
-				player.setGameMode(GameMode.CREATIVE);
-				player.clearInventory();
+				instancePlayer = new InstancePlayer(player, instance);
 			}
-			catch (final InstanceError e)
+			else
 			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				instancePlayer.setInstance(instance);
 			}
 		}
 

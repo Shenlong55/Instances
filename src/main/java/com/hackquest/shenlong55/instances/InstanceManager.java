@@ -5,18 +5,20 @@ import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
-import com.hackquest.shenlong55.instances.instances.Instance;
+import com.hackquest.shenlong55.instances.instances.InstancePlayer;
 import com.hackquest.shenlong55.instances.instances.InstancePrototype;
 
 public interface InstanceManager
 {
 	public void addInstancePrototype(InstancePrototype instancePrototype);
 
-	public InstancePrototype getInstancePrototypeByName(String name);
+	public InstancePlayer getInstancePlayer(Player player);
+
+	public InstancePrototype getInstancePrototype(String name);
 
 	public Logger getLogger();
 
-	public Instance getPlayerInstance(Player player);
-
 	public File getPrototypesFolder();
+
+	public void removeInstancePrototype(InstancePrototype instancePrototype);
 }

@@ -6,8 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.hackquest.shenlong55.instances.InstanceManager;
-import com.hackquest.shenlong55.instances.instances.Instance;
-import com.hackquest.shenlong55.instances.instances.InstanceError;
+import com.hackquest.shenlong55.instances.instances.InstancePlayer;
 
 public class SaveInstance implements CommandExecutor
 {
@@ -28,19 +27,15 @@ public class SaveInstance implements CommandExecutor
 
 		if (sender instanceof Player)
 		{
-			final Instance instance = instanceManager.getPlayerInstance((Player) sender);
-			try
+			final InstancePlayer instancePlayer = instanceManager.getInstancePlayer((Player) sender);
+			if (instancePlayer != null)
 			{
-				instance.save();
-			}
-			catch (final InstanceError e)
-			{
-				sender.sendMessage(e.getMessage());
-				instanceManager.getLogger().info(e.getMessage());
+				final boolean result = instancePlayer.getInstance().save();
+				final String resultMessage = result ? "Changes saved to prototype." : "Saving instance failed.";
+
+				sender.sendMessage(resultMessage);
 			}
 		}
-
-		sender.sendMessage("Changes saved to prototype.");
 
 		return true;
 	}

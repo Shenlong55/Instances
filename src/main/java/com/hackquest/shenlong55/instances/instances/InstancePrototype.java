@@ -1,187 +1,206 @@
 package com.hackquest.shenlong55.instances.instances;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
+import org.bukkit.entity.Player;
 
 import com.hackquest.shenlong55.ddpluginlibrary.DirectoryRemover;
-import com.hackquest.shenlong55.ddpluginlibrary.FileCopier;
+import com.hackquest.shenlong55.instances.InstanceManager;
 
 public final class InstancePrototype
 {
 	private final List<Instance> instances = new ArrayList<>();
 
-	private final File		folder;
-	private final String	name;
+	private final InstanceManager	instanceManager;
+	private final File				prototypeFolder;
+	private final String			prototypeName;
 
 	private Integer	editableInstanceId;
 	private boolean	initialized;
 
-	public InstancePrototype(final File prototypesFolder, final String name)
+	public InstancePrototype(final InstanceManager instanceManager, final String prototypeName)
 	{
-		this.name = name;
+		this.prototypeName = prototypeName;
+		this.instanceManager = instanceManager;
+		instanceManager.addInstancePrototype(this);
 
-		folder = new File(prototypesFolder, name);
-		// If the prototype folder does not exist...
-		if (!folder.exists())
+		prototypeFolder = new File(instanceManager.getPrototypesFolder(), prototypeName);
+		if (!prototypeFolder.exists())
 		{
-			// Create it
-			folder.mkdir();
+			prototypeFolder.mkdir();
 		}
-		else if (folder.list().length != 0)// If files exist in the folder...
+		else if (prototypeFolder.list().length != 0)
 		{
-			// Set initialized to true and...
 			initialized = true;
-
-			// Delete the Bukkit world id file if it exists
-			final File bukkitWorldId = new File(folder, "uid.dat");
-			if (bukkitWorldId.exists())
-			{
-				bukkitWorldId.delete();
-			}
+			deleteWorldId();
 		}
 	}
 
-	public Instance getInstance(final boolean editable) throws InstanceError
+	public Instance getInstance()
 	{
-		if (initialized)
-		{
-			if (editable && (editableInstanceId != null))
-			{
-				return instances.get(editableInstanceId);
-			}
-
-			final String instanceName = name + "_" + instances.size();
-			final Instance instance = new Instance(this, instanceName, editable);
-			instance.load();
-
-			instances.add(instance);
-
-			return instance;
-		}
-		else
-		{
-			Bukkit.getLogger().info("Instance prototype needs to be initialized.");
-			throw new InstanceError("Instance prototype needs to be initialized.");
-		}
-
+		return getInstance(false);
 	}
 
-	public List<Instance> getInstances()
+	public Instance getInstance(final boolean editable)
 	{
-		return instances;
+		if (!initialized)
+		{
+			initialize(editable);
+		}
+
+		if (editable && (editableInstanceId != null))
+		{
+			return instances.get(editableInstanceId);
+		}
+
+		final String instanceName = prototypeName + "_" + instances.size();
+		final Instance instance = new Instance(this, instanceName, editable);
+		instance.load();
+		instances.add(instance);
+
+		return instance;
+	}
+
+	public InstancePlayer getInstancePlayer(final Player player)
+	{
+		for (final Instance instance : instances)
+		{
+			final InstancePlayer instancePlayer = instance.getInstancePlayer(player);
+			if (instancePlayer != null)
+			{
+				return instancePlayer;
+			}
+		}
+
+		return null;
 	}
 
 	public String getName()
 	{
-		return name;
+		return prototypeName;
 	}
 
-	public void initialize()
+	public void unload()
 	{
-		initialize(true);
-	}
-
-	public void initialize(final boolean keepLoaded)
-	{
-		if (initialized)
+		// Use a copy of the instances list to avoid ConcurrentModificationExceptions
+		final List<Instance> instances = new ArrayList<>(this.instances);
+		for (final Instance instance : instances)
 		{
-			Bukkit.getLogger().info("Instance prototype has already been initialized.");
-			return;
-
+			instance.removePlayers();
 		}
-		else
+
+		instanceManager.removeInstancePrototype(this);
+	}
+
+	protected void deleteExtraFiles()
+	{
+		DirectoryRemover directoryRemover;
+
+		// Delete the advancements folder if it exists
+		final File advancementsFolder = new File(prototypeFolder, "advancements");
+		if (advancementsFolder.exists())
 		{
-			// Create a new world
-			final String worldName = name + "_0";
-			final WorldCreator worldCreator = new WorldCreator(worldName);
-			worldCreator.type(WorldType.FLAT);
-			worldCreator.generateStructures(false);
+			directoryRemover = new DirectoryRemover(advancementsFolder);
+			directoryRemover.removeDirectory();
+		}
 
-			final World world = worldCreator.createWorld();
+		// Delete the Bukkit world id file if it exists
+		final File bukkitWorldIdFile = new File(prototypeFolder, "uid.dat");
+		if (bukkitWorldIdFile.exists())
+		{
+			bukkitWorldIdFile.delete();
+		}
 
-			// Set up the world border
-			final WorldBorder worldBorder = world.getWorldBorder();
-			worldBorder.setCenter(world.getSpawnLocation());
-			worldBorder.setSize(128);
+		// Delete old level.dat file if it exists
+		final File oldLevelDataFile = new File(prototypeFolder, "level.dat_old");
+		if (oldLevelDataFile.exists())
+		{
+			oldLevelDataFile.delete();
+		}
 
-			if (keepLoaded)
-			{
-				final Instance instance = new Instance(this, worldName, true, world);
+		// Delete the player data folder if it exists
+		final File playerDataFolder = new File(prototypeFolder, "playerdata");
+		if (playerDataFolder.exists())
+		{
+			directoryRemover = new DirectoryRemover(playerDataFolder);
+			directoryRemover.removeDirectory();
+		}
 
-				instances.add(instance);
-				editableInstanceId = 0;
+		// Delete the session lock file if it exists
+		final File sessionLockFile = new File(prototypeFolder, "session.lock");
+		if (sessionLockFile.exists())
+		{
+			sessionLockFile.delete();
+		}
 
-			}
-			else
-			{
-				// Unload the world from Bukkit memory
-				Bukkit.unloadWorld(world, true);
-
-				try
-				{
-					// Delete the Bukkit world id file if it exists
-					final File bukkitWorldId = new File(folder, "uid.dat");
-					if (bukkitWorldId.exists())
-					{
-						bukkitWorldId.delete();
-					}
-
-					// Save the world to the prototype folder
-					final FileCopier fileCopier = new FileCopier(world.getWorldFolder(), folder);
-					fileCopier.copyFiles();
-				}
-				catch (final IOException e)
-				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-				// Delete the world folder
-				final DirectoryRemover directoryRemover = new DirectoryRemover(world.getWorldFolder());
-				directoryRemover.removeDirectory();
-			}
-
-			initialized = true;
+		// Delete the stats folder if it exists
+		final File statsFolder = new File(prototypeFolder, "stats");
+		if (statsFolder.exists())
+		{
+			directoryRemover = new DirectoryRemover(statsFolder);
+			directoryRemover.removeDirectory();
 		}
 	}
 
-	public void unloadInstances()
+	protected void deleteWorldId()
 	{
-		final Iterator<Instance> iterator = instances.iterator();
-		while (iterator.hasNext())
+		// Delete the Bukkit world id file if it exists
+		final File bukkitWorldIdFile = new File(prototypeFolder, "uid.dat");
+		if (bukkitWorldIdFile.exists())
 		{
-			final Instance instance = iterator.next();
-			unloadInstance(instance);
+			bukkitWorldIdFile.delete();
 		}
 	}
 
 	protected File getPrototypeFolder()
 	{
-		return folder;
+		return prototypeFolder;
 	}
 
-	protected boolean isInitialized()
-	{
-		return initialized;
-	}
-
-	protected void unloadInstance(final Instance instance)
+	protected void removeInstance(final Instance instance)
 	{
 		if (instance.isEditable())
 		{
 			editableInstanceId = null;
 		}
 
-		instance.unload();
 		instances.remove(instance);
+	}
+
+	private void initialize(final boolean keepLoaded)
+	{
+		// Create a new world
+		final String worldName = prototypeName + "_0";
+		final WorldCreator worldCreator = new WorldCreator(worldName);
+		worldCreator.type(WorldType.FLAT);
+		worldCreator.generateStructures(false);
+		final World world = worldCreator.createWorld();
+
+		// Set up the world border
+		final WorldBorder worldBorder = world.getWorldBorder();
+		worldBorder.setCenter(world.getSpawnLocation());
+		worldBorder.setSize(128);
+
+		// Create an instance using the newly created world and save it to the prototype folder
+		final Instance instance = new Instance(this, worldName, true, world);
+		instance.save();
+
+		if (keepLoaded)
+		{
+			instances.add(instance);
+			editableInstanceId = instances.indexOf(instance);
+		}
+		else
+		{
+			instance.unload();
+		}
+
+		initialized = true;
 	}
 }

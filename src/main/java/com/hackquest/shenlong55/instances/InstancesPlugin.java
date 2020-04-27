@@ -12,8 +12,10 @@ import com.hackquest.shenlong55.instances.commands.EditInstance;
 import com.hackquest.shenlong55.instances.commands.ExitInstance;
 import com.hackquest.shenlong55.instances.commands.SaveInstance;
 import com.hackquest.shenlong55.instances.commands.TestInstance;
-import com.hackquest.shenlong55.instances.instances.Instance;
-import com.hackquest.shenlong55.instances.instances.InstanceBlockBreakEvent;
+import com.hackquest.shenlong55.instances.events.InstanceBlockBreakEvent;
+import com.hackquest.shenlong55.instances.events.InstancePlayerQuitEvent;
+import com.hackquest.shenlong55.instances.events.InstancePlayerRespawnEvent;
+import com.hackquest.shenlong55.instances.instances.InstancePlayer;
 import com.hackquest.shenlong55.instances.instances.InstancePrototype;
 
 /**
@@ -31,13 +33,14 @@ public final class InstancesPlugin extends DDPlugin implements InstanceManager
 	}
 
 	@Override
-	public InstancePrototype getInstancePrototypeByName(final String name)
+	public InstancePlayer getInstancePlayer(final Player player)
 	{
 		for (final InstancePrototype prototype : instancePrototypes)
 		{
-			if (prototype.getName().equalsIgnoreCase(name))
+			final InstancePlayer instancePlayer = prototype.getInstancePlayer(player);
+			if (instancePlayer != null)
 			{
-				return prototype;
+				return instancePlayer;
 			}
 		}
 
@@ -45,16 +48,13 @@ public final class InstancesPlugin extends DDPlugin implements InstanceManager
 	}
 
 	@Override
-	public Instance getPlayerInstance(final Player player)
+	public InstancePrototype getInstancePrototype(final String name)
 	{
-		for (final InstancePrototype instancePrototype : instancePrototypes)
+		for (final InstancePrototype prototype : instancePrototypes)
 		{
-			for (final Instance instance : instancePrototype.getInstances())
+			if (prototype.getName().equalsIgnoreCase(name))
 			{
-				if (instance.getInstancePlayer(player) != null)
-				{
-					return instance;
-				}
+				return prototype;
 			}
 		}
 
@@ -70,14 +70,22 @@ public final class InstancesPlugin extends DDPlugin implements InstanceManager
 	@Override
 	public void onDisable()
 	{
-		for (final InstancePrototype prototype : instancePrototypes)
+		// Use a copy of the instancePrototypes list to avoid ConcurrentModificationExceptions
+		final List<InstancePrototype> instancePrototypes = new ArrayList<>(this.instancePrototypes);
+		for (final InstancePrototype instancePrototype : instancePrototypes)
 		{
-			prototype.unloadInstances();
+			instancePrototype.unload();
 		}
 	}
 
 	@Override
-	public void preEnable()
+	public void removeInstancePrototype(final InstancePrototype instancePrototype)
+	{
+		instancePrototypes.remove(instancePrototype);
+	}
+
+	@Override
+	protected void preEnable()
 	{
 		setUpFolders();
 		loadPrototypes();
@@ -97,6 +105,8 @@ public final class InstancesPlugin extends DDPlugin implements InstanceManager
 	protected void registerEvents()
 	{
 		registerEvent(new InstanceBlockBreakEvent(this));
+		registerEvent(new InstancePlayerRespawnEvent(this));
+		registerEvent(new InstancePlayerQuitEvent(this));
 	}
 
 	private void loadPrototypes()
@@ -104,7 +114,7 @@ public final class InstancesPlugin extends DDPlugin implements InstanceManager
 		getLogger().info("Loading prototypes...");
 		for (final String prototypeName : prototypesFolder.list())
 		{
-			addInstancePrototype(new InstancePrototype(prototypesFolder, prototypeName));
+			addInstancePrototype(new InstancePrototype(this, prototypeName));
 			logDebug("Loaded prototype " + prototypeName + ".");
 		}
 	}
